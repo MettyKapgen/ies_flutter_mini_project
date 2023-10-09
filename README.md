@@ -1,2 +1,2 @@
 # ies_flutter_mini_project
-Just a simple flutter app to which can communicate with an API
+Just a simple flutter app which can communicate with an API
