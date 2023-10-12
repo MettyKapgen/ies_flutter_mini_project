@@ -1,4 +1,81 @@
+//ignore_for_file: prefer_const_constructors
+
 import 'package:flutter/material.dart';
+import "package:http/http.dart" as http;
+
+void main() {
+  runApp(MaterialApp(
+    home: Home(),
+  ));
+}
+
+class Home extends StatefulWidget {
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  Future<String> getData() async {
+    final response = await http.get(
+        Uri.parse("https://worldtimeapi.org/api/timezone/Europe/Luxembourg"));
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.
+      return (response.body);
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      throw Exception('Failed to load album');
+    }
+    /*Future.delayed(Duration(seconds: 3), () {
+      print("Hello");
+    });*/
+  }
+
+  int counter = 0;
+  String apiresponse = "Nothing";
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Color.fromRGBO(238, 232, 200, 20),
+      appBar: AppBar(
+        title: Text("Mini Project App"),
+        centerTitle: true,
+        backgroundColor: Color.fromRGBO(113, 179, 144, 100),
+      ),
+      body: Center(
+        child: Text(
+          "Counter: " + "$counter " + " $apiresponse",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          getData().then((String res) {
+            setState(() {
+              apiresponse = res;
+              counter += 1;
+            });
+          });
+        },
+        backgroundColor: Color.fromRGBO(230, 125, 72, 60),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+
+
+/*
+
+##############################
+INITIAL APP THAT WAS GENERATED
+##############################
 
 void main() {
   runApp(const MyApp());
@@ -123,3 +200,4 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+*/
