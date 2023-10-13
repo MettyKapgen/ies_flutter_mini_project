@@ -1,5 +1,7 @@
 //ignore_for_file: prefer_const_constructors
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import "package:http/http.dart" as http;
 
@@ -10,30 +12,44 @@ void main() {
 }
 
 class Home extends StatefulWidget {
+  const Home({super.key});
+
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-  Future<String> getData() async {
+  String currentUser = "";
+  bool apiCall = false;
+
+  void getData() async {
     final response = await http.get(
-        Uri.parse("https://worldtimeapi.org/api/timezone/Europe/Luxembourg"));
+        Uri.parse("https://65283185931d71583df2033a.mockapi.io/SimpleUser"));
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
       // then parse the JSON.
-      return (response.body);
+      final List<dynamic> responseJson = jsonDecode(response.body);
+      setState(() {
+        currentUser = responseJson[0].toString();
+        apiCall = false;
+      });
+      return;
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
-      throw Exception('Failed to load album');
+      throw Exception('Fetch failed');
     }
-    /*Future.delayed(Duration(seconds: 3), () {
-      print("Hello");
-    });*/
   }
 
-  int counter = 0;
-  String apiresponse = "Nothing";
+  Widget getApiWidget() {
+    if (apiCall) {
+      return CircularProgressIndicator(
+        color: Color.fromRGBO(255, 255, 255, 50),
+      );
+    } else {
+      return Text(currentUser);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,23 +60,13 @@ class _HomeState extends State<Home> {
         centerTitle: true,
         backgroundColor: Color.fromRGBO(113, 179, 144, 100),
       ),
-      body: Center(
-        child: Text(
-          "Counter: " + "$counter " + " $apiresponse",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+      body: Center(child: getApiWidget()),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          getData().then((String res) {
-            setState(() {
-              apiresponse = res;
-              counter += 1;
-            });
+          setState(() {
+            apiCall = true;
           });
+          getData();
         },
         backgroundColor: Color.fromRGBO(230, 125, 72, 60),
         child: const Icon(Icons.add),
