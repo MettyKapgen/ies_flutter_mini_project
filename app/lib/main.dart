@@ -2,10 +2,24 @@
 
 import 'dart:convert';
 
+import 'package:app/Coord.dart';
 import 'package:flutter/material.dart';
 import "package:http/http.dart" as http;
+import 'package:workmanager/workmanager.dart';
+import 'package:geolocator/geolocator.dart';
+
+@pragma(
+    'vm:entry-point') // Mandatory if the App is obfuscated or using Flutter 3.1+
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) {
+    print("Native called background task: $task");
+    return Future.value(true);
+  });
+}
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
   runApp(MaterialApp(
     home: Home(),
   ));
@@ -19,35 +33,46 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  String currentUser = "";
+  List<Coord> apiResponse = [];
   bool apiCall = false;
+  double newCordx = -1;
+  double newCordy = -1;
+  Position position = Position(
+      longitude: 0,
+      latitude: 0,
+      timestamp: DateTime.now(),
+      accuracy: 0,
+      altitude: 0,
+      altitudeAccuracy: 0,
+      heading: 0,
+      headingAccuracy: 0,
+      speed: 0,
+      speedAccuracy: 0);
 
   void getData() async {
-    final response = await http.get(
-        Uri.parse("https://65283185931d71583df2033a.mockapi.io/SimpleUser"));
+    LocationPermission permission;
+    permission = await Geolocator.requestPermission();
+    Position pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    final response = await http.get(Uri.parse("http://10.0.2.2:5000/getter"));
+    print(response.body);
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
       // then parse the JSON.
-      final List<dynamic> responseJson = jsonDecode(response.body);
+      final parsedJson = jsonDecode(response.body);
       setState(() {
-        currentUser = responseJson[0].toString();
+        final tmp = Coord.fromJson(parsedJson);
+        apiResponse.add(tmp);
+        position = pos;
         apiCall = false;
+        newCordx = tmp.randomLat + position.latitude;
+        newCordy = tmp.randomLon + position.longitude;
       });
       return;
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
       throw Exception('Fetch failed');
-    }
-  }
-
-  Widget getApiWidget() {
-    if (apiCall) {
-      return CircularProgressIndicator(
-        color: Color.fromRGBO(255, 255, 255, 50),
-      );
-    } else {
-      return Text(currentUser);
     }
   }
 
@@ -60,7 +85,41 @@ class _HomeState extends State<Home> {
         centerTitle: true,
         backgroundColor: Color.fromRGBO(113, 179, 144, 100),
       ),
-      body: Center(child: getApiWidget()),
+      body: Column(children: [
+        SizedBox(
+            height: 700,
+            child: ListView.builder(
+              scrollDirection: Axis.vertical,
+              shrinkWrap: true,
+              itemCount: apiResponse.length,
+              itemBuilder: (context, index) {
+                return Column(children: [
+                  Text(
+                      "Received: " +
+                          "Lat: " +
+                          apiResponse[index].randomLat.toString() +
+                          " Lon: " +
+                          apiResponse[index].randomLon.toString(),
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                      "Current: " +
+                          "Lat: " +
+                          position.latitude.toString() +
+                          " Lon: " +
+                          position.longitude.toString(),
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                      "Returned: " +
+                          "Lat: " +
+                          newCordx.toString() +
+                          " Lon: " +
+                          newCordy.toString(),
+                      style: TextStyle(fontWeight: FontWeight.bold))
+                ]);
+              },
+            )),
+        if (apiCall) CircularProgressIndicator()
+      ]),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           setState(() {
@@ -73,9 +132,47 @@ class _HomeState extends State<Home> {
       ),
     );
   }
+
+  @override
+  void initState() {
+    super.initState();
+    //Cancel all Backgroundtask
+    Workmanager().cancelAll();
+    //Workmanager().registerOneOffTask("testtask", "backUp",
+    //    initialDelay: Duration(seconds: 2));
+  }
 }
 
+/*
 
+### Function to differentiate between to Widgets
+### Not needed for this project
+  Widget getApiWidget() {
+    if (apiCall) {
+      return CircularProgressIndicator(
+        color: Color.fromRGBO(255, 255, 255, 50),
+      );
+    } else {
+      return ListView.builder(
+        itemCount: apiResponse.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(
+              "API: " +
+                  apiResponse[index].userId.toString() +
+                  ", Current Lat: " +
+                  "${position.latitude}" +
+                  ", Current Lon: " +
+                  "${position.longitude}" +
+                  "RETURN",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          );
+        },
+      );
+    }
+  }
+*/
 
 /*
 
