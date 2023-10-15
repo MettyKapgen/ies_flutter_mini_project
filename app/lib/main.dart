@@ -20,6 +20,7 @@ void callbackDispatcher() {
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   Workmanager().initialize(callbackDispatcher);
+  Workmanager().cancelAll();
   runApp(MaterialApp(
     home: Home(),
   ));
