@@ -35,8 +35,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   List<Coord> apiResponse = [];
   bool apiCall = false;
-  double newCordx = -1;
-  double newCordy = -1;
+  List<Coord> apiReturn = [];
   Position position = Position(
       longitude: 0,
       latitude: 0,
@@ -49,13 +48,12 @@ class _HomeState extends State<Home> {
       speed: 0,
       speedAccuracy: 0);
 
-  void getData() async {
+  void get_api_data() async {
     LocationPermission permission;
     permission = await Geolocator.requestPermission();
     Position pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
-    final response = await http.get(Uri.parse("http://10.0.2.2:5000/getter"));
-    print(response.body);
+    final response = await http.get(Uri.parse("http://10.0.2.2:5000/"));
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
       // then parse the JSON.
@@ -65,9 +63,36 @@ class _HomeState extends State<Home> {
         apiResponse.add(tmp);
         position = pos;
         apiCall = false;
-        newCordx = tmp.randomLat + position.latitude;
-        newCordy = tmp.randomLon + position.longitude;
+        final newCordx = tmp.Lat + position.latitude;
+        final newCordy = tmp.Lon + position.longitude;
+        apiReturn.add(Coord(userId: -1, Lat: newCordx, Lon: newCordy));
       });
+      post_api_data();
+      return;
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      throw Exception('Fetch failed');
+    }
+  }
+
+  void post_api_data() async {
+    final response = await http.post(
+      Uri.parse("http://10.0.2.2:5000/"),
+      headers: <String, String>{
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+      body: jsonEncode(<String, String>{
+        "sendId": "1",
+        "lat": apiReturn[(apiReturn.length - 1)].Lat.toString(),
+        "lon": apiReturn[(apiReturn.length - 1)].Lon.toString()
+      }),
+    );
+    print(response.statusCode);
+    if (response.statusCode == 201) {
+      // If the server did return a 201 OK response,
+      // then parse the JSON.
+      print("Successful Post");
       return;
     } else {
       // If the server did not return a 200 OK response,
@@ -88,32 +113,37 @@ class _HomeState extends State<Home> {
       body: Column(children: [
         SizedBox(
             height: 700,
-            child: ListView.builder(
+            child: ListView.separated(
               scrollDirection: Axis.vertical,
               shrinkWrap: true,
+              separatorBuilder: (context, index) {
+                return Divider(
+                  color: Theme.of(context).primaryColor,
+                );
+              },
               itemCount: apiResponse.length,
               itemBuilder: (context, index) {
                 return Column(children: [
                   Text(
                       "Received: " +
                           "Lat: " +
-                          apiResponse[index].randomLat.toString() +
+                          apiResponse[index].Lat.toStringAsFixed(2) +
                           " Lon: " +
-                          apiResponse[index].randomLon.toString(),
+                          apiResponse[index].Lon.toStringAsFixed(2),
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   Text(
                       "Current: " +
                           "Lat: " +
-                          position.latitude.toString() +
+                          position.latitude.toStringAsFixed(2) +
                           " Lon: " +
-                          position.longitude.toString(),
+                          position.longitude.toStringAsFixed(2),
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   Text(
                       "Returned: " +
                           "Lat: " +
-                          newCordx.toString() +
+                          apiReturn[index].Lon.toStringAsFixed(2) +
                           " Lon: " +
-                          newCordy.toString(),
+                          apiReturn[index].Lat.toStringAsFixed(2),
                       style: TextStyle(fontWeight: FontWeight.bold))
                 ]);
               },
@@ -125,7 +155,7 @@ class _HomeState extends State<Home> {
           setState(() {
             apiCall = true;
           });
-          getData();
+          get_api_data();
         },
         backgroundColor: Color.fromRGBO(230, 125, 72, 60),
         child: const Icon(Icons.add),
