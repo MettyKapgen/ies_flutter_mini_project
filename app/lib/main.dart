@@ -20,20 +20,22 @@ const simpleTaskKey = "workmanager.simpleTask";
 const simplePeriodicTask = "workmanager.simplePeriodicTask";
 const simplePeriodic1HourTask = "workmanager.simplePeriodic1HourTask";
 
-void _backgroundTask() async {
-  //SendPort sendPort) async {
-  // Perform time-consuming operation here
-  //Position pos = await Geolocator.getCurrentPosition(
-  //    desiredAccuracy: LocationAccuracy.high);
-  final response = await http.get(Uri.parse("http://10.0.2.2:5000/"));
-  if (response.statusCode == 200) {
-    // If the server did return a 200 OK response,
-    // then parse the JSON.
-    final parsedJson = jsonDecode(response.body);
+Future<void> _backgroundTask() async {
+  // First asynchronous operation
+  Position pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high);
+  final response1 = await http.get(Uri.parse("http://10.0.2.2:5000/"));
+  if (response1.statusCode == 200) {
+    print("Current Lat " + pos.latitude.toString());
+    print("Current Lon " + pos.longitude.toString());
+    final parsedJson = jsonDecode(response1.body);
     final tmp = Coord.fromJson(parsedJson);
-    final newCordx = tmp.Lat + 3; //pos.latitude;
-    final newCordy = tmp.Lon + 3; //pos.longitude;
+    final newCordx = tmp.Lat + pos.latitude;
+    final newCordy = tmp.Lon + pos.longitude;
     final c = Coord(userId: -1, Lat: newCordx, Lon: newCordy);
+    print("Response Status 200");
+
+    // Second asynchronous operation, processing variables from the first
     final response2 = await http.post(
       Uri.parse("http://10.0.2.2:5000/"),
       headers: <String, String>{
@@ -45,10 +47,11 @@ void _backgroundTask() async {
         "lon": c.Lon.toString()
       }),
     );
+    print(c.Lat.toString());
     if (response2.statusCode == 201) {
       // If the server did return a 201 OK response,
       // then parse the JSON.
-      print("Successful Post");
+      print("Response Status 201");
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
@@ -59,7 +62,6 @@ void _backgroundTask() async {
     // then throw an exception.
     throw Exception('Fetch(Get) failed');
   }
-  return;
 }
 
 @pragma(
@@ -68,56 +70,21 @@ void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     switch (task) {
       case simpleTaskKey:
-        final response = await http.get(Uri.parse("http://10.0.2.2:5000/"));
-        if (response.statusCode == 200) {
-          // If the server did return a 200 OK response,
-          // then parse the JSON.
-          print("Response Status 200");
-          final parsedJson = jsonDecode(response.body);
-          final tmp = Coord.fromJson(parsedJson);
-          final newCordx = tmp.Lat + 3; //pos.latitude;
-          final newCordy = tmp.Lon + 3; //pos.longitude;
-          final c = Coord(userId: -1, Lat: newCordx, Lon: newCordy);
-          final response2 = await http.post(
-            Uri.parse("http://10.0.2.2:5000/"),
-            headers: <String, String>{
-              "Content-Type": "application/json; charset=UTF-8",
-            },
-            body: jsonEncode(<String, String>{
-              "sendId": "1",
-              "lat": c.Lat.toString(),
-              "lon": c.Lon.toString()
-            }),
-          );
-          if (response2.statusCode == 201) {
-            // If the server did return a 201 OK response,
-            // then parse the JSON.
-            print("Response Status 201");
-          } else {
-            // If the server did not return a 200 OK response,
-            // then throw an exception.
-            throw Exception('Fetch(Push) failed');
-          }
-        } else {
-          // If the server did not return a 200 OK response,
-          // then throw an exception.
-          throw Exception('Fetch(Get) failed');
-        }
+        await _backgroundTask();
         print("$simpleTaskKey was executed. inputData = $inputData");
         final prefs = await SharedPreferences.getInstance();
         prefs.setBool("test", true);
         print("Bool from prefs: ${prefs.getBool("test")}");
         break;
       case simplePeriodicTask:
-        _backgroundTask();
+        await _backgroundTask();
         print("$simplePeriodicTask was executed");
         break;
       case simplePeriodic1HourTask:
         print("$simplePeriodic1HourTask was executed");
         break;
     }
-
-    return Future.value(true);
+    return true;
   });
 }
 
@@ -227,7 +194,26 @@ class _HomeState extends State<Home> {
                 },
               );
             },
-            child: Text("Run task in background every 15 minutes")),
+            child: Text("Run task once (Workmanager)")),
+        ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromRGBO(230, 125, 72, 60)),
+            onPressed: () {
+              print("Run task periodic");
+              Workmanager().registerOneOffTask(
+                simplePeriodicTask,
+                simplePeriodicTask,
+                inputData: <String, dynamic>{
+                  'int': 1,
+                  'bool': true,
+                  'double': 1.0,
+                  'string': 'string',
+                  'array': [1, 2, 3],
+                },
+              );
+            },
+            child:
+                Text("Run task in background every 15 minutes (Workmanager)")),
         SizedBox(
             height: 500,
             child: ListView.separated(
