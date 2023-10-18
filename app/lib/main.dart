@@ -200,9 +200,10 @@ class _HomeState extends State<Home> {
                 backgroundColor: Color.fromRGBO(230, 125, 72, 60)),
             onPressed: () {
               print("Run task periodic");
-              Workmanager().registerOneOffTask(
+              Workmanager().registerPeriodicTask(
                 simplePeriodicTask,
                 simplePeriodicTask,
+                frequency: Duration(minutes: 15),
                 inputData: <String, dynamic>{
                   'int': 1,
                   'bool': true,
