@@ -18,7 +18,6 @@ void main() {
 
 const simpleTaskKey = "workmanager.simpleTask";
 const simplePeriodicTask = "workmanager.simplePeriodicTask";
-const simplePeriodic1HourTask = "workmanager.simplePeriodic1HourTask";
 
 Future<void> _backgroundTask() async {
   // First asynchronous operation
@@ -79,9 +78,6 @@ void callbackDispatcher() {
       case simplePeriodicTask:
         await _backgroundTask();
         print("$simplePeriodicTask was executed");
-        break;
-      case simplePeriodic1HourTask:
-        print("$simplePeriodic1HourTask was executed");
         break;
     }
     return true;
