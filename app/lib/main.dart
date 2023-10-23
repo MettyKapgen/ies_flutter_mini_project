@@ -1,12 +1,14 @@
+//  Metty Kapgen
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:app/Coord.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:workmanager/workmanager.dart';
 import "package:http/http.dart" as http;
 
+//  Starts the app
+//    Puts Workmanager in DebugMode
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
@@ -15,26 +17,26 @@ void main() {
   ));
 }
 
+//  Constant naming to differentiate between periodic and once-run task
 const simpleTaskKey = "workmanager.simpleTask";
 const simplePeriodicTask = "workmanager.simplePeriodicTask";
 
+//  Function to execute api call, calculations of the location and api post
+//  Sheduled by the Workmanager!
 Future<void> _backgroundTask() async {
-  // First asynchronous operation
   Position pos = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high);
-  final response1 = await http.get(Uri.parse("http://10.0.2.2:5000/"));
-  if (response1.statusCode == 200) {
-    print("Current Lat " + pos.latitude.toString());
-    print("Current Lon " + pos.longitude.toString());
-    final parsedJson = jsonDecode(response1.body);
-    final tmp = Coord.fromJson(parsedJson);
-    final newCordx = tmp.Lat + pos.latitude;
-    final newCordy = tmp.Lon + pos.longitude;
-    final c = Coord(userId: -1, Lat: newCordx, Lon: newCordy);
+  final api_get = await http.get(Uri.parse("http://10.0.2.2:5000/"));
+  if (api_get.statusCode == 200) {
+    //  Successfully received data from api
+    //  Calculate new location
     print("Response Status 200");
-
-    // Second asynchronous operation, processing variables from the first
-    final response2 = await http.post(
+    final tmp = Coord.fromJson(jsonDecode(api_get.body));
+    final newLat = tmp.Lat + pos.latitude;
+    final newLon = tmp.Lon + pos.longitude;
+    final c = Coord(userId: -1, Lat: newLat, Lon: newLon);
+    print("Calculated the response coordinates");
+    final api_post = await http.post(
       Uri.parse("http://10.0.2.2:5000/"),
       headers: <String, String>{
         "Content-Type": "application/json; charset=UTF-8",
@@ -45,23 +47,21 @@ Future<void> _backgroundTask() async {
         "lon": c.Lon.toString()
       }),
     );
-    print(c.Lat.toString());
-    if (response2.statusCode == 201) {
-      // If the server did return a 201 OK response,
-      // then parse the JSON.
+    if (api_post.statusCode == 201) {
+      //  Successfully posted data to the server
       print("Response Status 201");
     } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
+      //  Failed to post data to the server
       throw Exception('Fetch(Push) failed');
     }
   } else {
-    // If the server did not return a 200 OK response,
-    // then throw an exception.
+    //  Failed to receive data from api
     throw Exception('Fetch(Get) failed');
   }
 }
 
+//  Function called by Workmanager
+//    Handles different task calls
 @pragma(
     'vm:entry-point') // Mandatory if the App is obfuscated or using Flutter 3.1+
 void callbackDispatcher() {
@@ -69,7 +69,7 @@ void callbackDispatcher() {
     switch (task) {
       case simpleTaskKey:
         await _backgroundTask();
-        print("$simpleTaskKey was executed. inputData = $inputData");
+        print("$simpleTaskKey was executed");
         break;
       case simplePeriodicTask:
         await _backgroundTask();
@@ -91,6 +91,7 @@ class _HomeState extends State<Home> {
     super.initState();
   }
 
+//  Local variables used to simulate task on button click with response on screen
   List<Coord> apiResponse = [];
   bool apiCall = false;
   List<Coord> apiReturn = [];
@@ -106,6 +107,7 @@ class _HomeState extends State<Home> {
       speed: 0,
       speedAccuracy: 0);
 
+//  Same function as _backgroudTask, but actively changes APP UI
   void get_api_data() async {
     LocationPermission permission;
     permission = await Geolocator.requestPermission();
@@ -113,8 +115,6 @@ class _HomeState extends State<Home> {
         desiredAccuracy: LocationAccuracy.high);
     final response = await http.get(Uri.parse("http://10.0.2.2:5000/"));
     if (response.statusCode == 200) {
-      // If the server did return a 200 OK response,
-      // then parse the JSON.
       final parsedJson = jsonDecode(response.body);
       setState(() {
         final tmp = Coord.fromJson(parsedJson);
@@ -128,8 +128,6 @@ class _HomeState extends State<Home> {
       post_api_data();
       return;
     } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
       throw Exception('Fetch failed');
     }
   }
@@ -146,19 +144,14 @@ class _HomeState extends State<Home> {
         "lon": apiReturn[(apiReturn.length - 1)].Lon.toString()
       }),
     );
-    print(response.statusCode);
     if (response.statusCode == 201) {
-      // If the server did return a 201 OK response,
-      // then parse the JSON.
-      print("Successful Post");
       return;
     } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
       throw Exception('Fetch failed');
     }
   }
 
+//  Widgettree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
