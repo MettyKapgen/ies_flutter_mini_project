@@ -8,8 +8,6 @@ app = Flask(__name__)
 
 @app.route('/', methods=['GET'])
 def query_records():
-    #name = request.args.get('name')
-    #print(name)
     return {"userId": random.randint(0,100), "lat": random.uniform(-10,10), "lon": random.uniform(-10,10)}
 
 @app.route('/', methods=['PUT'])
@@ -48,21 +46,3 @@ def delte_record():
     return jsonify(record)
 
 app.run(debug=True)
-
-"""
-from flask import Flask
-from flask_restful import Api, Resource
-import random
-
-app = Flask(__name__)
-api = Api(app)
-
-class HelloWorld(Resource):
-    def get(self):
-        return {"userId": random.randint(0,100), "lat": random.uniform(-10,10), "lon": random.uniform(-10,10)}
-    
-api.add_resource(HelloWorld, "/getter")
-
-if __name__ == "__main__":
-    app.run(debug=True)
-"""

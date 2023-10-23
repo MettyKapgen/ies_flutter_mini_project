@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:app/Coord.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import "package:http/http.dart" as http;
 
@@ -71,9 +70,6 @@ void callbackDispatcher() {
       case simpleTaskKey:
         await _backgroundTask();
         print("$simpleTaskKey was executed. inputData = $inputData");
-        final prefs = await SharedPreferences.getInstance();
-        prefs.setBool("test", true);
-        print("Bool from prefs: ${prefs.getBool("test")}");
         break;
       case simplePeriodicTask:
         await _backgroundTask();
@@ -183,10 +179,6 @@ class _HomeState extends State<Home> {
                 simpleTaskKey,
                 inputData: <String, dynamic>{
                   'int': 1,
-                  'bool': true,
-                  'double': 1.0,
-                  'string': 'string',
-                  'array': [1, 2, 3],
                 },
               );
             },
@@ -202,17 +194,22 @@ class _HomeState extends State<Home> {
                 frequency: Duration(minutes: 15),
                 inputData: <String, dynamic>{
                   'int': 1,
-                  'bool': true,
-                  'double': 1.0,
-                  'string': 'string',
-                  'array': [1, 2, 3],
                 },
               );
             },
             child:
                 Text("Run task in background every 15 minutes (Workmanager)")),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Color.fromRGBO(230, 125, 72, 60)),
+          child: Text("Cancel all running/sheduled tasks"),
+          onPressed: () async {
+            await Workmanager().cancelAll();
+            print('Cancel all tasks completed');
+          },
+        ),
         SizedBox(
-            height: 500,
+            height: 400,
             child: ListView.separated(
               scrollDirection: Axis.vertical,
               shrinkWrap: true,
